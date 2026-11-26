@@ -6,10 +6,10 @@ import json
 
 UI = {
     "pl": {"title": "Analiza balda", "strengths": "Co poszło dobrze", "focus": "Nad czym popracować",
-           "moments": "Momenty", "limits": "Ograniczenia tej analizy", "none": "Nie wykryto błędów – świetne przejście!",
+           "moments": "Momenty", "limits": "Ograniczenia tej analizy", "none": "Nie wykryto błędów w tym, co było widać na nagraniu.", "no_strengths": "Za mało widocznych danych, żeby wskazać mocne strony.",
            "uncertain": "niepewne", "conf": "pewność"},
     "en": {"title": "Boulder analysis", "strengths": "What went well", "focus": "What to work on",
-           "moments": "Moments", "limits": "Limits of this analysis", "none": "No issues detected – clean climb!",
+           "moments": "Moments", "limits": "Limits of this analysis", "none": "No issues detected in what was visible in the video.", "no_strengths": "Not enough visible data to name strengths.",
            "uncertain": "uncertain", "conf": "confidence"},
 }
 DOT = {"bent_arms": "#eb3c3c", "foot_slip": "#ff9628", "foot_readjust": "#f0d228"}
@@ -25,7 +25,7 @@ def write_html(report: dict, path, lang: str = "pl"):
         f'<span>{esc(e["label"])}</span>'
         f'<span class="conf">{u["uncertain"] if e["low_confidence"] else u["conf"] + " " + str(int(e["confidence"] * 100)) + "%"}</span></li>'
         for e in report["events"])
-    strengths = "".join(f"<li>{esc(s)}</li>" for s in fb["strengths"]) or "<li>–</li>"
+    strengths = "".join(f"<li>{esc(s)}</li>" for s in fb["strengths"]) or f"<li>{u['no_strengths']}</li>"
     focus = (f'<p class="issue">{esc(fb["main_issue_label"])}</p><p>{esc(fb["main_tip"])}</p>'
              if fb["main_issue"] else f"<p>{u['none']}</p>")
     warnings = "".join(f"<li>{esc(w)}</li>" for w in fb["warnings"])

@@ -82,21 +82,24 @@ def build_feedback(report: dict, camera: dict, lang: str = "pl") -> dict:
     main = max(score, key=score.get) if score else None
 
     m, q = report["metrics"], report["quality"]
+    climb_s = (report["climb_end_s"] or 0) - (report["climb_start_s"] or 0)
+    feet_hidden = climb_s > 8 and m["foot_placements"] < climb_s / 4
+
     strengths = []
-    if m["straight_arm_ratio"] >= 0.7:
+    if m["straight_arm_ratio"] >= 0.7 and q["both_arms_visible"] >= 0.3:
         strengths.append(t["strength"]["straight_arms"].format(p=int(m["straight_arm_ratio"] * 100)))
-    if m["foot_placements"] >= 4 and m["clean_foot_ratio"] >= 0.85:
-        strengths.append(t["strength"]["quiet_feet"].format(p=int(m["clean_foot_ratio"] * 100)))
-    if m["foot_slips"] == 0 and m["foot_placements"] >= 4:
-        strengths.append(t["strength"]["no_slips"])
+    if not feet_hidden:  # never praise what we could not see
+        if m["foot_placements"] >= 4 and m["clean_foot_ratio"] >= 0.85:
+            strengths.append(t["strength"]["quiet_feet"].format(p=int(m["clean_foot_ratio"] * 100)))
+        if m["foot_slips"] == 0 and m["foot_placements"] >= 4:
+            strengths.append(t["strength"]["no_slips"])
 
     warnings = []
     if camera.get("handheld"):
         warnings.append(t["warning"]["handheld"])
     if q["both_arms_visible"] < 0.6:
         warnings.append(t["warning"]["arms_hidden"].format(p=int(q["both_arms_visible"] * 100)))
-    climb_s = (report["climb_end_s"] or 0) - (report["climb_start_s"] or 0)
-    if climb_s > 8 and m["foot_placements"] < climb_s / 4:
+    if feet_hidden:
         warnings.append(t["warning"]["feet_hidden"])
     if q["person_detected"] < 0.9:
         warnings.append(t["warning"]["person_lost"])
