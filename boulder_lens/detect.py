@@ -236,5 +236,8 @@ def analyze(lm: np.ndarray, fps: float, cfg: Config = DEFAULT) -> dict:
         "quality": {
             "person_detected": round(float(f["detected"][climbing].mean()) if climbing.any() else 0.0, 2),
             "both_arms_visible": round(float((L["visible"] & R["visible"])[climbing].mean()) if climbing.any() else 0.0, 2),
+            # per-limb visibility: reaching overhead briefly hides one arm, which is normal
+            "arms_visible": round(float(((L["visible"].astype(float) + R["visible"]) / 2)[climbing].mean()) if climbing.any() else 0.0, 2),
+            "feet_visible": round(float(((f["vis"][:, L_FOOT] > cfg.vis_min).astype(float) + (f["vis"][:, R_FOOT] > cfg.vis_min))[climbing].mean() / 2) if climbing.any() else 0.0, 2),
         },
     }

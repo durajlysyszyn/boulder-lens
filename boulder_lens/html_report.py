@@ -7,10 +7,10 @@ import json
 UI = {
     "pl": {"title": "Analiza balda", "strengths": "Co poszło dobrze", "focus": "Nad czym popracować",
            "moments": "Momenty", "limits": "Ograniczenia tej analizy", "none": "Nie wykryto błędów w tym, co było widać na nagraniu.", "no_strengths": "Za mało widocznych danych, żeby wskazać mocne strony.",
-           "uncertain": "niepewne", "conf": "pewność"},
+           "uncertain": "niepewne", "conf": "pewność", "measure": "Pomiary", "m_straight": "Proste ręce w pozycji", "m_place": "Postawienia stóp", "m_clean": "Bez poprawiania", "m_slips": "Zsunięcia stopy", "m_time": "Czas wspinania", "m_vis": "Widoczność rąk / stóp"},
     "en": {"title": "Boulder analysis", "strengths": "What went well", "focus": "What to work on",
            "moments": "Moments", "limits": "Limits of this analysis", "none": "No issues detected in what was visible in the video.", "no_strengths": "Not enough visible data to name strengths.",
-           "uncertain": "uncertain", "conf": "confidence"},
+           "uncertain": "uncertain", "conf": "confidence", "measure": "Measurements", "m_straight": "Straight arms while holding", "m_place": "Foot placements", "m_clean": "Without re-adjusting", "m_slips": "Foot slips", "m_time": "Climbing time", "m_vis": "Arms / feet visible"},
 }
 DOT = {"bent_arms": "#eb3c3c", "foot_slip": "#ff9628", "foot_readjust": "#f0d228"}
 
@@ -28,6 +28,15 @@ def write_html(report: dict, path, lang: str = "pl"):
     strengths = "".join(f"<li>{esc(s)}</li>" for s in fb["strengths"]) or f"<li>{u['no_strengths']}</li>"
     focus = (f'<p class="issue">{esc(fb["main_issue_label"])}</p><p>{esc(fb["main_tip"])}</p>'
              if fb["main_issue"] else f"<p>{u['none']}</p>")
+    m, q = report["metrics"], report["quality"]
+    climb = (report.get("climb_end_s") or 0) - (report.get("climb_start_s") or 0)
+    rows = [(u["m_time"], f"{climb:.0f} s"),
+            (u["m_straight"], f"{int(m['straight_arm_ratio'] * 100)}%"),
+            (u["m_place"], str(m["foot_placements"])),
+            (u["m_clean"], f"{int(m['clean_foot_ratio'] * 100)}%"),
+            (u["m_slips"], str(m["foot_slips"])),
+            (u["m_vis"], f"{int(q.get('arms_visible', 0) * 100)}% / {int(q.get('feet_visible', 0) * 100)}%")]
+    measures = "".join(f"<div><dt>{esc(k)}</dt><dd>{esc(v)}</dd></div>" for k, v in rows)
     warnings = "".join(f"<li>{esc(w)}</li>" for w in fb["warnings"])
     page = f"""<!DOCTYPE html>
 <html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -46,6 +55,8 @@ ul{{margin:0;padding-left:18px}} .good li::marker{{color:var(--accent)}}
 .moments{{list-style:none;padding:0}} .moments li{{display:flex;gap:10px;align-items:center;padding:8px 6px;border-radius:8px;cursor:pointer}}
 .moments li:hover{{background:var(--line)}} .moments .dim{{opacity:.55}}
 .dot{{width:10px;height:10px;border-radius:50%;flex:none}} .time{{font-variant-numeric:tabular-nums;color:var(--muted);width:38px}}
+.measures{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0}} .measures dt{{font-size:13px;color:var(--muted)}} .measures dd{{margin:0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}}
+@media (max-width:500px){{.measures{{grid-template-columns:repeat(2,1fr)}}}}
 .conf{{margin-left:auto;font-size:13px;color:var(--muted)}} .limits{{font-size:14px;color:var(--muted)}}
 </style></head><body><main>
 <h1>{u['title']} · {esc(report['video'])}</h1>
@@ -53,6 +64,7 @@ ul{{margin:0;padding-left:18px}} .good li::marker{{color:var(--accent)}}
 <div>
 <section><h2>{u['strengths']}</h2><ul class="good">{strengths}</ul></section>
 <section><h2>{u['focus']}</h2>{focus}</section>
+<section><h2>{u['measure']}</h2><dl class="measures">{measures}</dl></section>
 {f'<section><h2>{u["moments"]}</h2><ul class="moments">{items}</ul></section>' if items else ''}
 {f'<section class="limits"><h2>{u["limits"]}</h2><ul>{warnings}</ul></section>' if warnings else ''}
 </div></main>

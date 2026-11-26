@@ -27,7 +27,7 @@ TEXT = {
         },
         "warning": {
             "handheld": "Kamera ruszała się w trakcie nagrania – wyniki skompensowano, ale statyw da dokładniejszą analizę.",
-            "arms_hidden": "Ręce były często zasłonięte ({p}% klatek z obiema rękami) – ocena rąk jest mniej pewna.",
+            "arms_hidden": "Ręce były często zasłonięte (widoczne w {p}% klatek) – ocena rąk jest mniej pewna.",
             "person_lost": "Sylwetka nie była widoczna w części nagrania – spróbuj kadru z całym ciałem.",
             "feet_hidden": "Stopy były słabo widoczne – praca nóg nie została oceniona.",
         },
@@ -52,7 +52,7 @@ TEXT = {
         },
         "warning": {
             "handheld": "The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.",
-            "arms_hidden": "Arms were often hidden ({p}% of frames with both arms visible) – arm feedback is less certain.",
+            "arms_hidden": "Arms were often hidden (visible in {p}% of frames) – arm feedback is less certain.",
             "person_lost": "The climber was not visible for part of the video – try framing the whole body.",
             "feet_hidden": "Feet were hard to see – footwork was not assessed.",
         },
@@ -82,11 +82,12 @@ def build_feedback(report: dict, camera: dict, lang: str = "pl") -> dict:
     main = max(score, key=score.get) if score else None
 
     m, q = report["metrics"], report["quality"]
-    climb_s = (report["climb_end_s"] or 0) - (report["climb_start_s"] or 0)
-    feet_hidden = climb_s > 8 and m["foot_placements"] < climb_s / 4
+    # visibility is measured per limb; few foot placements just means a calm, static climb
+    feet_hidden = q.get("feet_visible", 1.0) < 0.6
+    arms_hidden = q.get("arms_visible", 1.0) < 0.6
 
     strengths = []
-    if m["straight_arm_ratio"] >= 0.7 and q["both_arms_visible"] >= 0.3:
+    if m["straight_arm_ratio"] >= 0.7 and not arms_hidden:
         strengths.append(t["strength"]["straight_arms"].format(p=int(m["straight_arm_ratio"] * 100)))
     if not feet_hidden:  # never praise what we could not see
         if m["foot_placements"] >= 4 and m["clean_foot_ratio"] >= 0.85:
@@ -97,8 +98,8 @@ def build_feedback(report: dict, camera: dict, lang: str = "pl") -> dict:
     warnings = []
     if camera.get("handheld"):
         warnings.append(t["warning"]["handheld"])
-    if q["both_arms_visible"] < 0.6:
-        warnings.append(t["warning"]["arms_hidden"].format(p=int(q["both_arms_visible"] * 100)))
+    if arms_hidden:
+        warnings.append(t["warning"]["arms_hidden"].format(p=int(q["arms_visible"] * 100)))
     if feet_hidden:
         warnings.append(t["warning"]["feet_hidden"])
     if q["person_detected"] < 0.9:
