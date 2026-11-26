@@ -19,8 +19,9 @@
 - [ ] On-device analysis, video never leaves the phone by default
 
 ## Phase 3 – More technique
-- [ ] **Rope mode**: own thresholds + "hands at chest, bent arms, hips away from the wall" (classic beginner position)
-- [ ] Small / far-away climbers: crop around the climber before pose estimation
+- [x] **Rope mode**: own thresholds, bent arms with hands at chest height
+- [ ] Hips away from the wall (not measurable from behind in 2D – needs a side view or depth)
+- [x] Small / far-away climbers: zoomed second pass around the climber
 - [ ] Interactive demo: analyse your own video in the browser (MediaPipe JS), nothing uploaded
 - [ ] Hips far from the wall (needs side view or depth – research)
 - [ ] Stiff body / no hip rotation (variance of hip and knee angles)

@@ -73,18 +73,16 @@ and the camera pans a lot.</p>
 <div class="gap">
 <div><h3>What a coach sees</h3>Hands at chest height with bent arms, hips away from the wall, standing upright instead of pushing with the legs –
 and a fall at the end.</div>
-<div><h3>What the engine sees today</h3>The climber, close up: the climber is small in the frame, so the engine finds them first and then analyses a zoomed crop from the full-resolution video. It also excludes the fall at the end from scoring.
-It does <em>not</em> yet flag the bent-arm, hips-out position – that rule was tuned on boulders, where the same pose can be correct.
-Next step: a rope mode with its own rules.</div>
+<div><h3>What the engine sees today</h3>The climber is small in the frame, so the engine finds them first and analyses a zoomed crop from the full-resolution video. Rope mode then flags bent arms while holding a position (twice, 1.2–2.4 s and 3.6–7.6 s), shows a tip on the video, and leaves the fall at the end out of scoring. Hips away from the wall can't be measured from behind yet.</div>
 </div></div>
 <main>
 
 <div><video id="v2" src="demo/rope.mp4" controls playsinline></video></div>
 <div>
 <section><h2>What went well</h2><ul class="good"><li>Not enough visible data to name strengths.</li></ul></section>
-<section><h2>What to work on</h2><p>No issues detected in what was visible in the video.</p></section>
+<section><h2>What to work on</h2><p class="issue">Bent arms while holding</p><p>When holding a position, hang on straight arms. Legs and hips do the work, arms just hold.</p></section>
 <section><h2>Measurements</h2><dl class="measures"><div><dt>Climbing time</dt><dd>13 s</dd></div><div><dt>Straight arms while holding</dt><dd>–</dd></div><div><dt>Foot placements</dt><dd>–</dd></div><div><dt>Without re-adjusting</dt><dd>–</dd></div><div><dt>Foot slips</dt><dd>–</dd></div><div><dt>Arms / feet visible</dt><dd>56% / 95%</dd></div></dl></section>
-
+<section><h2>Moments</h2><ul class="moments"><li data-t="1.17" class=""><span class="dot" style="background:#eb3c3c"></span><span class="time">0:01</span><span>Bent arms while holding</span><span class="conf">confidence 80%</span></li><li data-t="3.63" class=""><span class="dot" style="background:#eb3c3c"></span><span class="time">0:03</span><span>Bent arms while holding</span><span class="conf">confidence 89%</span></li></ul></section>
 <section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li><li>Arms were often hidden (visible in 56% of frames) – arm feedback is less certain.</li></ul></section>
 </div></main>
 </section>

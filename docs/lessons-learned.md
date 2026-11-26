@@ -62,6 +62,7 @@ Putting the report in front of a person (the climber herself) found problems no 
 | 15 | Messages flashed by too fast to read | a label alone, shown for 1 s | a short tip under the label, kept for 2.5 s |
 
 | 16 | On the rope video the model kept losing the climber (arms, sometimes the whole body) | the climber filled ~10% of the frame; downscaled for the model, only a few dozen pixels were left | two passes: find the climber, then crop around them from the full-resolution video and run the model on the zoomed crop – detected in 97% of frames instead of 83%, feet visible 95% instead of 83% (the heavy model did *worse* on the crop than the default one) |
+| 17 | The report said the beginner climbed on straight arms 86% of the time – the opposite of what a coach sees | the boulder rule only judged hands clearly *above* the shoulder (to ignore palming a volume); the child held the holds at chest height. Seen from behind, the arm held at the chest can also look straight in 2D | **rope mode** (automatic when the climber is small in the frame): hands above the chest count as holding, one clearly bent arm (< 90°) is enough, short sways (< 0.4 s) don't break a position. Result: bent arms flagged 1.2–2.4 s and 3.6–7.6 s; the boulder videos give the same results as before |
 
 **Takeaways**
 - *A person looking at the output is the best test.* All of round 3 came from one look at the demo page.
