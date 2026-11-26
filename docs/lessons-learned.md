@@ -61,6 +61,8 @@ Putting the report in front of a person (the climber herself) found problems no 
 | 14 | The skeleton's leg swung like a pendulum while the climber stood still | the pose model was *confidently wrong* (visibility 0.9) – baggy trousers, a foot half-hidden by a volume, a back view | display only: reject physically impossible jumps, median-filter, pin resting limbs to their hold in wall coordinates; plus the heavy model for that video |
 | 15 | Messages flashed by too fast to read | a label alone, shown for 1 s | a short tip under the label, kept for 2.5 s |
 
+| 16 | On the rope video the model kept losing the climber (arms, sometimes the whole body) | the climber filled ~10% of the frame; downscaled for the model, only a few dozen pixels were left | two passes: find the climber, then crop around them from the full-resolution video and run the model on the zoomed crop – detected in 97% of frames instead of 83%, feet visible 95% instead of 83% (the heavy model did *worse* on the crop than the default one) |
+
 **Takeaways**
 - *A person looking at the output is the best test.* All of round 3 came from one look at the demo page.
 - *Smoothing cannot fix a model that is confidently wrong* – it only averages the error in. What worked was
