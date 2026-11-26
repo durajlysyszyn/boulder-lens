@@ -66,7 +66,31 @@ def _banner(frame, text, color_bgr, font, dim=False, tip=None, tip_font=None):
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 
+def smooth_for_display(lm: np.ndarray, fps: float, window_s: float = 0.25) -> np.ndarray:
+    """Removes skeleton jitter for drawing (the video is offline, so a centred window is fine).
+
+    Each point = average of the neighbouring frames, weighted by visibility squared: frames where the model
+    was guessing (an occluded or shaking leg) barely pull the line. Visibility is smoothed the same way,
+    so a limb that is unsure for a moment fades out instead of flickering.
+    """
+    T = len(lm)
+    half = max(1, int(round(window_s * fps / 2)))
+    xy = np.nan_to_num(lm[:, :, :2], nan=0.0)
+    vis = np.nan_to_num(lm[:, :, 2], nan=0.0)
+    w = vis ** 2
+    out = np.full_like(lm, np.nan)
+    kernel = np.hanning(2 * half + 3)[1:-1]  # soft edges, centre weighs most
+    for j in range(lm.shape[1]):
+        wj = np.convolve(w[:, j], kernel, mode="same")
+        for c in range(2):
+            out[:, j, c] = np.convolve(xy[:, j, c] * w[:, j], kernel, mode="same") / np.maximum(wj, 1e-6)
+        out[:, j, 2] = np.convolve(vis[:, j], kernel, mode="same") / kernel.sum()
+    out[np.isnan(lm[:, 0, 0])] = np.nan  # nobody detected -> draw nothing
+    return out
+
+
 def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=1.0, low_conf_text="?"):
+    lm = smooth_for_display(lm, fps)
     T = len(lm)
     events = report["events"]
     dur = T / fps
@@ -89,7 +113,7 @@ def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=
         pts = lm[i]
         if not np.isnan(pts[0, 0]):
             for a, b in BONES:
-                if pts[a, 2] > 0.4 and pts[b, 2] > 0.4:
+                if pts[a, 2] > 0.6 and pts[b, 2] > 0.6:
                     col = COLORS["bent_arms"] if ("bent_arms" in kinds and (a, b) in ARM_BONES) else OK
                     cv2.line(frame, tuple(pts[a, :2].astype(int)), tuple(pts[b, :2].astype(int)), col, thick, cv2.LINE_AA)
             for e in active:
