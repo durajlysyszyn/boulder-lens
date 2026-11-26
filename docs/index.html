@@ -15,6 +15,8 @@ ul{margin:0;padding-left:18px} .good li::marker{color:var(--accent)}
 .moments{list-style:none;padding:0} .moments li{display:flex;gap:10px;align-items:center;padding:8px 6px;border-radius:8px;cursor:pointer}
 .moments li:hover{background:var(--line)} .moments .dim{opacity:.55}
 .dot{width:10px;height:10px;border-radius:50%;flex:none} .time{font-variant-numeric:tabular-nums;color:var(--muted);width:38px}
+.measures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0} .measures dt{font-size:13px;color:var(--muted)} .measures dd{margin:0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+@media (max-width:500px){.measures{grid-template-columns:repeat(2,1fr)}}
 .conf{margin-left:auto;font-size:13px;color:var(--muted)} .limits{font-size:14px;color:var(--muted)}
 .intro{grid-column:1/-1;max-width:760px}.intro h1{font-size:28px;margin:4px 0 10px}
 .eyebrow{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
@@ -24,24 +26,24 @@ ul{margin:0;padding-left:18px} .good li::marker{color:var(--accent)}
 <p class="eyebrow">Boulder Lens · concept prototype</p>
 <h1>Video feedback on bouldering technique</h1>
 <p>Below is a real report generated from a phone video filmed by hand at a climbing gym. The engine tracks the climber's body,
-compensates for the moving camera, and turns what it sees into feedback: strengths first, one thing to work on, clickable moments –
-and an honest list of what it <em>could not</em> judge.</p>
+compensates for the moving camera, and turns what it sees into feedback: strengths first, one thing to work on, clickable moments,
+measurements – and an honest list of what it <em>could not</em> judge.</p>
 <p class="links"><a href="https://github.com/durajlysyszyn/boulder-lens">Code &amp; docs on GitHub</a> ·
 <a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/lessons-learned.md">Lessons learned</a> ·
 <a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/architecture.md">Architecture</a></p>
-<p class="note">This climb produced no issue events – partly because the arms and feet were often hidden from the camera.
-That is exactly the case the report is designed to be honest about. An interactive version (analyse your own video in the browser) is on the roadmap.</p>
+<p class="note">An interactive version – analyse your own video, privately, in the browser – is on the roadmap.</p>
 </header>
 <div><video id="v" src="demo/example.mp4" controls playsinline></video></div>
 <div>
-<section><h2>What went well</h2><ul class="good"><li>Not enough visible data to name strengths.</li></ul></section>
+<section><h2>What went well</h2><ul class="good"><li>Precise feet (100% of placements without re-adjusting)</li><li>Stable feet – no slips</li></ul></section>
 <section><h2>What to work on</h2><p>No issues detected in what was visible in the video.</p></section>
+<section><h2>Measurements</h2><dl class="measures"><div><dt>Climbing time</dt><dd>47 s</dd></div><div><dt>Straight arms while holding</dt><dd>52%</dd></div><div><dt>Foot placements</dt><dd>9</dd></div><div><dt>Without re-adjusting</dt><dd>100%</dd></div><div><dt>Foot slips</dt><dd>0</dd></div><div><dt>Arms / feet visible</dt><dd>69% / 97%</dd></div></dl></section>
 
-<section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li><li>Arms were often hidden (53% of frames with both arms visible) – arm feedback is less certain.</li><li>Feet were hard to see – footwork was not assessed.</li></ul></section>
+<section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li></ul></section>
 </div></main>
 <script>
 const v=document.getElementById('v');
 document.querySelectorAll('.moments li').forEach(li=>li.addEventListener('click',()=>{v.currentTime=Math.max(0,+li.dataset.t-0.5);v.play();}));
 </script>
-<script type="application/json" id="data">{"metrics": {"straight_arm_ratio": 0.52, "foot_placements": 9, "clean_foot_ratio": 1.0, "foot_slips": 0}, "quality": {"person_detected": 1.0, "both_arms_visible": 0.53}, "camera": {"pan_p95_per_s": 0.059, "zoom_range": 1.15, "handheld": true}}</script>
+<script type="application/json" id="data">{"metrics": {"straight_arm_ratio": 0.52, "foot_placements": 9, "clean_foot_ratio": 1.0, "foot_slips": 0}, "quality": {"person_detected": 1.0, "both_arms_visible": 0.53, "arms_visible": 0.69, "feet_visible": 0.97}, "camera": {"pan_p95_per_s": 0.059, "zoom_range": 1.15, "handheld": true}}</script>
 </body></html>
