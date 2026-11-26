@@ -4,6 +4,8 @@
 - Pose estimation + camera motion compensation
 - 3 detectors, strengths, confidence, quality warnings
 - Annotated video, HTML report, evaluation tooling, tests
+- On-video tips, per-limb visibility, steady (pinned) skeleton, rope falls excluded
+- Live demo page with two case studies (GitHub Pages)
 
 ## Phase 1 – Validate with climbers
 - [ ] Interviews and observation at the gym: how and why people film, what they do with the videos
@@ -17,6 +19,9 @@
 - [ ] On-device analysis, video never leaves the phone by default
 
 ## Phase 3 – More technique
+- [ ] **Rope mode**: own thresholds + "hands at chest, bent arms, hips away from the wall" (classic beginner position)
+- [ ] Small / far-away climbers: crop around the climber before pose estimation
+- [ ] Interactive demo: analyse your own video in the browser (MediaPipe JS), nothing uploaded
 - [ ] Hips far from the wall (needs side view or depth – research)
 - [ ] Stiff body / no hip rotation (variance of hip and knee angles)
 - [ ] Looking at hands instead of feet (needs a side or front view)
