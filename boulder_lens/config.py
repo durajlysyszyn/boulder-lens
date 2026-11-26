@@ -40,8 +40,18 @@ class Config:
 
     lowering_drop: float = 3.0          # torso – hips dropping this much after the high point = lowered on the rope
 
+    bent_arm_any: bool = False          # True: one clearly bent arm is enough (rope: seen from behind, the
+                                        #       other arm held at the chest often looks straight in 2D)
+    gap_fill_s: float = 0.0             # s – bridge short breaks in a detected position (small sways)
+    speed_window_s: float = 0.0         # s – 0: frame-to-frame speed; >0: speed over this window (robust to jitter)
+
     # report
     show_after: float = 2.5             # s – how long a message + tip stays on screen after an event (time to read)
 
 
 DEFAULT = Config()
+
+# Rope climbing filmed from below (chosen automatically when the climber is small in the frame):
+# beginners typically hold the holds at chest height with bent arms, so hands only need to be above
+# the chest to count as holding; speed is measured over 0.2 s because a small climber's points jitter more.
+ROPE = Config(hanging_reach=-0.6, bent_arm_angle=90.0, bent_arm_any=True, speed_window_s=0.2, gap_fill_s=0.4)

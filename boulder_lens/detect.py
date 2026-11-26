@@ -88,9 +88,14 @@ def compute_features(lm: np.ndarray, fps: float, cfg: Config = DEFAULT) -> dict 
         return None
     axis = torso_vec / (np.linalg.norm(torso_vec, axis=-1, keepdims=True) + 1e-9)  # hip -> shoulders
 
+    sw = max(1, int(round(cfg.speed_window_s * fps)))  # speed window in frames
+
     def speed(p):
         v = np.zeros(T)
-        v[1:] = np.linalg.norm(np.diff(p, axis=0), axis=-1) / torso * fps
+        if T > sw:
+            v[sw:] = np.linalg.norm(p[sw:] - p[:-sw], axis=-1) / torso * fps / sw
+            if sw > 1:
+                v[:sw] = v[sw]
         return v
 
     # climbing window: first..last frame with a hand above the head
@@ -157,6 +162,10 @@ def detect_bent_arms(f: dict, cfg: Config):
     bentL = L["hanging"] & (L["angle"] < cfg.bent_arm_angle)
     bentR = R["hanging"] & (R["angle"] < cfg.bent_arm_angle)
     both = bentL & bentR
+    if cfg.bent_arm_any:  # one clearly bent arm, unless the other is visibly free (lock-off / reaching)
+        lock_off_l = bentL & R["visible"] & ~R["hanging"]
+        lock_off_r = bentR & L["visible"] & ~L["hanging"]
+        both = (bentL & ~lock_off_l) | (bentR & ~lock_off_r)
     only_left = bentL & ~R["visible"]
     only_right = bentR & ~L["visible"]
     # the final match on the top hold is not an error: skip the last moments of the climb
@@ -164,6 +173,12 @@ def detect_bent_arms(f: dict, cfg: Config):
     if f["climb_end"] is not None:
         finishing[int(max(0, f["climb_end"] - cfg.finish_ignore) * f["fps"]):] = True
     mask = f["climbing"] & ~finishing & f["body_static"] & (both | only_left | only_right)
+    if cfg.gap_fill_s > 0:  # bridge short breaks (a beginner sways a little while holding a position)
+        gap = int(round(cfg.gap_fill_s * f["fps"]))
+        on = np.where(mask)[0]
+        for a, b in zip(on[:-1], on[1:]):
+            if 1 < b - a <= gap + 1:
+                mask[a:b] = True
     events = []
     for a, b in segments(mask, f["fps"], cfg.bent_arm_min_dur):
         both = (L["hanging"][a:b + 1] & R["hanging"][a:b + 1]).mean()
