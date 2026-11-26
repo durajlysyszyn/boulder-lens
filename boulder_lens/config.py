@@ -13,6 +13,7 @@ class Config:
     # processing
     max_width: int = 960            # frames are downscaled to this width
     target_fps: float = 30.0        # 60 fps videos are sampled every 2nd frame
+    zoom_below: float = 0.06            # torso shorter than this share of frame height -> zoomed second pass
     vis_min: float = 0.5            # minimum landmark visibility to trust a point
 
     # body "holding a position" (static phase)

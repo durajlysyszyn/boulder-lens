@@ -111,8 +111,8 @@ def _lock_to_holds(track: np.ndarray, radius: float, min_frames: int) -> np.ndar
     return out
 
 
-def smooth_for_display(lm: np.ndarray, fps: float, mats: np.ndarray | None = None, median_s: float = 0.5,
-                       jump_torso: float = 0.4, rest_torso: float = 0.5, move_s: float = 0.5,
+def smooth_for_display(lm: np.ndarray, fps: float, mats: np.ndarray | None = None, median_s: float = 0.25,
+                       jump_torso: float = 0.4, rest_torso: float = 0.3, move_s: float = 0.2,
                        window_s: float = 0.15) -> np.ndarray:
     """Steady skeleton for drawing (offline, so centred windows are fine).
 
@@ -136,6 +136,13 @@ def smooth_for_display(lm: np.ndarray, fps: float, mats: np.ndarray | None = Non
 
     mhalf = max(1, int(round(median_s * fps / 2)))
     t = np.arange(T)
+    # whole-body jumps: a frame whose hips sit far from where they are a moment before and after is the model
+    # latching onto something else (e.g. while the camera is still finding the climber) -> not drawn
+    bh = max(mhalf, int(round(0.5 * fps / 2)))
+    body_med = np.stack([_rolling_median(hip[:, c], bh) for c in range(2)], axis=1)
+    jump = np.linalg.norm(hip - body_med, axis=1) > 1.0 * torso
+    detected = detected & ~jump
+    xy[jump] = np.nan  # and they do not pull the neighbouring frames either
     for j in range(lm.shape[1]):
         med = np.stack([_rolling_median(xy[:, j, c], mhalf) for c in range(2)], axis=1)
         bad = np.linalg.norm(xy[:, j] - med, axis=1) > jump_torso * torso

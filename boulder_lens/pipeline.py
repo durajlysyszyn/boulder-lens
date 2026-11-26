@@ -11,7 +11,7 @@ from .config import DEFAULT, Config
 from .detect import analyze
 from .feedback import TEXT, build_feedback
 from .html_report import write_html
-from .pose import extract_landmarks
+from .pose import extract_landmarks, extract_landmarks_zoomed
 from .render import render
 from .video import video_info
 
@@ -29,6 +29,12 @@ def run(video: str, model: str, out_dir: str, lang: str = "pl", cfg: Config = DE
         lm, mats, size = c["lm"], c["mats"], tuple(c["size"])
     else:
         lm, size = extract_landmarks(video, model, src_fps, stride, cfg.max_width)  # image coords (for drawing)
+        # small, far-away climber (rope climbing filmed from below): second pass on a zoomed crop
+        sh = (lm[:, 11, :2] + lm[:, 12, :2]) / 2
+        hip = (lm[:, 23, :2] + lm[:, 24, :2]) / 2
+        torso = np.nanmedian(np.linalg.norm(sh - hip, axis=1))
+        if np.isfinite(torso) and torso < cfg.zoom_below * size[1]:
+            lm = extract_landmarks_zoomed(video, model, src_fps, stride, cfg.max_width, lm)
         mats = estimate_camera_motion(video, lm, cfg.max_width, stride)              # camera motion
         np.savez_compressed(cache_file, lm=lm, mats=mats, size=np.array(size))
 
