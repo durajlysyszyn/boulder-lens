@@ -66,24 +66,59 @@ def _banner(frame, text, color_bgr, font, dim=False, tip=None, tip_font=None):
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 
-def smooth_for_display(lm: np.ndarray, fps: float, window_s: float = 0.25) -> np.ndarray:
-    """Removes skeleton jitter for drawing (the video is offline, so a centred window is fine).
+def _rolling_median(x: np.ndarray, half: int) -> np.ndarray:
+    """Centred running median along time for a [T] array with NaNs."""
+    T = len(x)
+    pad = np.pad(x, half, mode="edge")
+    win = np.lib.stride_tricks.sliding_window_view(pad, 2 * half + 1)[:T]
+    with np.errstate(all="ignore"):
+        return np.nanmedian(win, axis=1)
 
-    Each point = average of the neighbouring frames, weighted by visibility squared: frames where the model
-    was guessing (an occluded or shaking leg) barely pull the line. Visibility is smoothed the same way,
-    so a limb that is unsure for a moment fades out instead of flickering.
+
+def smooth_for_display(lm: np.ndarray, fps: float, window_s: float = 0.25, median_s: float = 0.8,
+                       jump_torso: float = 0.4) -> np.ndarray:
+    """Removes skeleton jitter for drawing (the video is offline, so centred windows are fine).
+
+    1. Outliers: the pose model is sometimes *confidently wrong* for a few frames – e.g. it swaps the left
+       and right leg, so a foot jumps half a wall while the climber stands still. A running median ignores
+       such short spikes; any point further than `jump_torso` torso lengths from it is dropped and filled
+       in from the neighbouring frames.
+    2. Wobble: a running median of the cleaned track (edge-preserving: a step to a new hold stays sharp).
+    3. Jitter: each point = average of the neighbouring frames, weighted by visibility squared.
     """
     T = len(lm)
-    half = max(1, int(round(window_s * fps / 2)))
-    xy = np.nan_to_num(lm[:, :, :2], nan=0.0)
+    xy = lm[:, :, :2].astype(float).copy()
     vis = np.nan_to_num(lm[:, :, 2], nan=0.0)
+    sh = (xy[:, 11] + xy[:, 12]) / 2
+    hip = (xy[:, 23] + xy[:, 24]) / 2
+    torso = np.nanmedian(np.linalg.norm(sh - hip, axis=-1))
+    torso = torso if np.isfinite(torso) and torso > 0 else 100.0
+
+    mhalf = max(1, int(round(median_s * fps / 2)))
+    t = np.arange(T)
+    for j in range(lm.shape[1]):
+        med = np.stack([_rolling_median(xy[:, j, c], mhalf) for c in range(2)], axis=1)
+        bad = np.linalg.norm(xy[:, j] - med, axis=1) > jump_torso * torso
+        xy[bad, j] = np.nan
+        vis[bad, j] *= 0.3  # a corrected point is drawn more faintly / may be hidden
+        for c in range(2):
+            col = xy[:, j, c]
+            good = ~np.isnan(col)
+            if good.sum() >= 2:
+                col[~good] = np.interp(t[~good], t[good], col[good])
+        # Climbing is mostly holds and steps: a running median keeps a real step to a new hold sharp
+        # but removes the model's wobble while a limb is actually still.
+        xy[:, j] = np.stack([_rolling_median(xy[:, j, c], mhalf) for c in range(2)], axis=1)
+
+    half = max(1, int(round(window_s * fps / 2)))
+    kernel = np.hanning(2 * half + 3)[1:-1]
     w = vis ** 2
-    out = np.full_like(lm, np.nan)
-    kernel = np.hanning(2 * half + 3)[1:-1]  # soft edges, centre weighs most
+    xy0 = np.nan_to_num(xy, nan=0.0)
+    out = np.full_like(lm, np.nan, dtype=float)
     for j in range(lm.shape[1]):
         wj = np.convolve(w[:, j], kernel, mode="same")
         for c in range(2):
-            out[:, j, c] = np.convolve(xy[:, j, c] * w[:, j], kernel, mode="same") / np.maximum(wj, 1e-6)
+            out[:, j, c] = np.convolve(xy0[:, j, c] * w[:, j], kernel, mode="same") / np.maximum(wj, 1e-6)
         out[:, j, 2] = np.convolve(vis[:, j], kernel, mode="same") / kernel.sum()
     out[np.isnan(lm[:, 0, 0])] = np.nan  # nobody detected -> draw nothing
     return out
