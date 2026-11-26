@@ -1,0 +1,13 @@
+# videos & generated output (keep climbing footage out of the repo)
+*.mov
+*.MOV
+*.mp4
+!docs/media/*.mp4
+results/
+*.landmarks.npz
+# model is downloaded by scripts/download_model.py
+models/*.task
+__pycache__/
+.pytest_cache/
+.venv/
+.DS_Store
