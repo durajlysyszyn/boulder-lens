@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Boulder Lens – example report</title>
+<title>Boulder Lens – demo</title>
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1d1d1b;--muted:#6b6a65;--line:#e4e1da;--accent:#2f7d5b}
 @media (prefers-color-scheme:dark){:root{--bg:#151514;--card:#1f1f1d;--ink:#f1efe9;--muted:#a3a19a;--line:#33322f;--accent:#6fcf9f}}
@@ -18,22 +18,44 @@ ul{margin:0;padding-left:18px} .good li::marker{color:var(--accent)}
 .measures{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0} .measures dt{font-size:13px;color:var(--muted)} .measures dd{margin:0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 @media (max-width:500px){.measures{grid-template-columns:repeat(2,1fr)}}
 .conf{margin-left:auto;font-size:13px;color:var(--muted)} .limits{font-size:14px;color:var(--muted)}
-.intro{grid-column:1/-1;max-width:760px}.intro h1{font-size:28px;margin:4px 0 10px}
+
+.wrap{max-width:1000px;margin:0 auto;padding:24px}
+.intro{max-width:760px} .intro h1{font-size:28px;margin:4px 0 10px}
 .eyebrow{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
-.intro p{margin:0 0 10px}.links a{color:var(--accent);font-weight:600}.note{font-size:14px;color:var(--muted)}
-</style></head><body><main>
+.intro p{margin:0 0 10px} .links a{color:var(--accent);font-weight:600} .note{font-size:14px;color:var(--muted)}
+.tabs{display:flex;gap:8px;margin:20px 0 8px;flex-wrap:wrap}
+.tabs button{font:inherit;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.case{display:none} .case.on{display:block}
+.case-head{max-width:760px;margin:16px 0 0} .case-head h2{font-size:20px;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 6px}
+.case main{padding:16px 0 0;margin:0;max-width:none}
+.gap{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px} @media (max-width:700px){.gap{grid-template-columns:1fr}}
+.gap div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:15px}
+.gap h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+</style></head><body><div class="wrap">
 <header class="intro">
 <p class="eyebrow">Boulder Lens · concept prototype</p>
-<h1>Video feedback on bouldering technique</h1>
-<p>Below is a real report generated from a phone video filmed by hand at a climbing gym. The engine tracks the climber's body,
+<h1>Video feedback on climbing technique</h1>
+<p>Real reports generated from phone videos filmed by hand at a climbing gym. The engine tracks the climber's body,
 compensates for the moving camera, and turns what it sees into feedback: strengths first, one thing to work on, clickable moments,
 measurements – and an honest list of what it <em>could not</em> judge.</p>
 <p class="links"><a href="https://github.com/durajlysyszyn/boulder-lens">Code &amp; docs on GitHub</a> ·
 <a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/lessons-learned.md">Lessons learned</a> ·
 <a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/architecture.md">Architecture</a></p>
-<p class="note">An interactive version – analyse your own video, privately, in the browser – is on the roadmap.</p>
 </header>
-<div><video id="v" src="demo/example.mp4" controls playsinline></video></div>
+
+<div class="tabs" role="tablist">
+<button role="tab" aria-selected="true" data-case="c1">Case 1 · Bouldering</button>
+<button role="tab" aria-selected="false" data-case="c2">Case 2 · Beginner on a rope</button>
+</div>
+
+<section class="case on" id="c1">
+<div class="case-head"><h2>Bouldering – an experienced climber</h2>
+<p>Filmed by a friend who followed the climber with the phone. The engine compensates for the camera movement,
+finds clean, quiet footwork and nothing to flag – so the report leads with what went well.</p></div>
+<main>
+
+<div><video id="v1" src="demo/example.mp4" controls playsinline></video></div>
 <div>
 <section><h2>What went well</h2><ul class="good"><li>Precise feet (100% of placements without re-adjusting)</li><li>Stable feet – no slips</li></ul></section>
 <section><h2>What to work on</h2><p>No issues detected in what was visible in the video.</p></section>
@@ -41,9 +63,38 @@ measurements – and an honest list of what it <em>could not</em> judge.</p>
 
 <section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li></ul></section>
 </div></main>
+</section>
+
+<section class="case" id="c2">
+<div class="case-head"><h2>Top rope – a beginner</h2>
+<p>Rope climbing is where feedback can be most concrete: the route is fixed, so mistakes are easier to name than on a boulder,
+where the "right" beta depends on the climber's body. This video is also the hardest case for the engine: the climber is small in the frame
+and the camera pans a lot.</p>
+<div class="gap">
+<div><h3>What a coach sees</h3>Hands at chest height with bent arms, hips away from the wall, standing upright instead of pushing with the legs –
+and a fall at the end.</div>
+<div><h3>What the engine sees today</h3>The climbing phase and the fall (excluded from scoring), camera motion, visibility limits.
+It does <em>not</em> yet flag the bent-arm, hips-out position – that rule was tuned on boulders, where the same pose can be correct.
+Next step: a rope mode with its own rules.</div>
+</div></div>
+<main>
+
+<div><video id="v2" src="demo/rope.mp4" controls playsinline></video></div>
+<div>
+<section><h2>What went well</h2><ul class="good"><li>Not enough visible data to name strengths.</li></ul></section>
+<section><h2>What to work on</h2><p>No issues detected in what was visible in the video.</p></section>
+<section><h2>Measurements</h2><dl class="measures"><div><dt>Climbing time</dt><dd>11 s</dd></div><div><dt>Straight arms while holding</dt><dd>–</dd></div><div><dt>Foot placements</dt><dd>–</dd></div><div><dt>Without re-adjusting</dt><dd>–</dd></div><div><dt>Foot slips</dt><dd>–</dd></div><div><dt>Arms / feet visible</dt><dd>55% / 100%</dd></div></dl></section>
+
+<section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li><li>Arms were often hidden (visible in 55% of frames) – arm feedback is less certain.</li></ul></section>
+</div></main>
+</section>
+<p class="note">An interactive version – analyse your own video, privately, in the browser – is on the roadmap.</p>
+</div>
 <script>
-const v=document.getElementById('v');
-document.querySelectorAll('.moments li').forEach(li=>li.addEventListener('click',()=>{v.currentTime=Math.max(0,+li.dataset.t-0.5);v.play();}));
-</script>
-<script type="application/json" id="data">{"metrics": {"straight_arm_ratio": 0.52, "foot_placements": 9, "clean_foot_ratio": 1.0, "foot_slips": 0}, "quality": {"person_detected": 1.0, "both_arms_visible": 0.53, "arms_visible": 0.69, "feet_visible": 0.97}, "camera": {"pan_p95_per_s": 0.059, "zoom_range": 1.15, "handheld": true}}</script>
-</body></html>
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected', x===b));
+  document.querySelectorAll('.case').forEach(c=>{c.classList.toggle('on', c.id===b.dataset.case); c.querySelectorAll('video').forEach(v=>v.pause());});
+}));
+document.querySelectorAll('.case').forEach(c=>{const v=c.querySelector('video');
+  c.querySelectorAll('.moments li').forEach(li=>li.addEventListener('click',()=>{v.currentTime=Math.max(0,+li.dataset.t-0.5);v.play();}));});
+</script></body></html>
