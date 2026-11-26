@@ -39,7 +39,7 @@ def run(video: str, model: str, out_dir: str, lang: str = "pl", cfg: Config = DE
         report["feedback"] = build_feedback(report, report["camera"], lang)
         if render_video:
             vid = out / f"{stem}_analysis.mp4"
-            render(video, lm, report, vid, fps, stride, cfg.max_width, cfg.show_after, TEXT[lang]["low_conf"])
+            render(video, lm, report, vid, fps, stride, cfg.max_width, cfg.show_after, TEXT[lang]["low_conf"], mats=mats)
             report["annotated_video"] = vid.name
             write_html(report, out / f"{stem}_report.html", lang)
     (out / f"{stem}_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))

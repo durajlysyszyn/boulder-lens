@@ -75,20 +75,60 @@ def _rolling_median(x: np.ndarray, half: int) -> np.ndarray:
         return np.nanmedian(win, axis=1)
 
 
-def smooth_for_display(lm: np.ndarray, fps: float, window_s: float = 0.25, median_s: float = 0.8,
-                       jump_torso: float = 0.4) -> np.ndarray:
-    """Removes skeleton jitter for drawing (the video is offline, so centred windows are fine).
+LIMBS = list(range(13, 23)) + list(range(25, 33))  # elbows, wrists, hands, knees, ankles, heels, toes
 
-    1. Outliers: the pose model is sometimes *confidently wrong* for a few frames – e.g. it swaps the left
-       and right leg, so a foot jumps half a wall while the climber stands still. A running median ignores
-       such short spikes; any point further than `jump_torso` torso lengths from it is dropped and filled
-       in from the neighbouring frames.
-    2. Wobble: a running median of the cleaned track (edge-preserving: a step to a new hold stays sharp).
-    3. Jitter: each point = average of the neighbouring frames, weighted by visibility squared.
+
+def _lock_to_holds(track: np.ndarray, radius: float, min_frames: int) -> np.ndarray:
+    """Pins a limb to where it rests, the way a hand or foot rests on a hold.
+
+    The pose model sometimes swings a still foot back and forth for seconds (e.g. it hesitates between the
+    left and the right leg). Climbing limbs are either resting on a hold or moving to the next one, so:
+    while the detected point stays within `radius` of its resting place, it is drawn exactly there; only when
+    it stays away for `min_frames` in a row does it move, with a short transition to the new place.
+    """
+    T = len(track)
+    out = track.copy()
+    anchor, start, away = track[0].copy(), 0, 0
+    seg_pts = [track[0]]
+    for t in range(1, T):
+        p = track[t]
+        if np.linalg.norm(p - anchor) <= radius:
+            away = 0
+            seg_pts.append(p)
+            if len(seg_pts) % 5 == 0:  # resting place = median of where it was seen while resting
+                anchor = np.median(np.array(seg_pts[-60:]), axis=0)
+            out[t] = anchor
+        else:
+            away += 1
+            out[t] = anchor
+            if away >= min_frames:  # it really moved: new resting place, smooth transition over the away frames
+                new_anchor = np.median(track[t - away + 1: t + 1], axis=0)
+                s0 = t - away + 1
+                for k, tt in enumerate(range(s0, t + 1)):
+                    f = (k + 1) / away
+                    out[tt] = anchor * (1 - f) + new_anchor * f
+                anchor, away, seg_pts = new_anchor, 0, [new_anchor]
+    return out
+
+
+def smooth_for_display(lm: np.ndarray, fps: float, mats: np.ndarray | None = None, median_s: float = 0.5,
+                       jump_torso: float = 0.4, rest_torso: float = 0.5, move_s: float = 0.5,
+                       window_s: float = 0.15) -> np.ndarray:
+    """Steady skeleton for drawing (offline, so centred windows are fine).
+
+    Works in wall coordinates when the camera motion `mats` is given, so a pinned foot stays on its hold
+    while the camera pans.
+    1. Outliers: points far from a running median (a confidently wrong frame) are dropped and filled in.
+    2. Limbs are pinned to where they rest (see _lock_to_holds); torso and head get the running median.
+    3. A short soft window takes the edge off the transitions.
     """
     T = len(lm)
+    detected = ~np.isnan(lm[:, 0, 0])
     xy = lm[:, :, :2].astype(float).copy()
     vis = np.nan_to_num(lm[:, :, 2], nan=0.0)
+    if mats is not None and len(mats) >= T:  # image -> wall coordinates
+        h = np.concatenate([xy, np.ones((T, xy.shape[1], 1))], axis=-1)
+        xy = np.einsum("tij,tkj->tki", mats[:T], h)[:, :, :2]
     sh = (xy[:, 11] + xy[:, 12]) / 2
     hip = (xy[:, 23] + xy[:, 24]) / 2
     torso = np.nanmedian(np.linalg.norm(sh - hip, axis=-1))
@@ -100,32 +140,34 @@ def smooth_for_display(lm: np.ndarray, fps: float, window_s: float = 0.25, media
         med = np.stack([_rolling_median(xy[:, j, c], mhalf) for c in range(2)], axis=1)
         bad = np.linalg.norm(xy[:, j] - med, axis=1) > jump_torso * torso
         xy[bad, j] = np.nan
-        vis[bad, j] *= 0.3  # a corrected point is drawn more faintly / may be hidden
         for c in range(2):
             col = xy[:, j, c]
             good = ~np.isnan(col)
             if good.sum() >= 2:
                 col[~good] = np.interp(t[~good], t[good], col[good])
-        # Climbing is mostly holds and steps: a running median keeps a real step to a new hold sharp
-        # but removes the model's wobble while a limb is actually still.
         xy[:, j] = np.stack([_rolling_median(xy[:, j, c], mhalf) for c in range(2)], axis=1)
+        if j in LIMBS and np.isfinite(xy[:, j]).all():
+            xy[:, j] = _lock_to_holds(xy[:, j], rest_torso * torso, max(2, int(round(move_s * fps))))
 
     half = max(1, int(round(window_s * fps / 2)))
     kernel = np.hanning(2 * half + 3)[1:-1]
-    w = vis ** 2
-    xy0 = np.nan_to_num(xy, nan=0.0)
-    out = np.full_like(lm, np.nan, dtype=float)
+    kernel = kernel / kernel.sum()
     for j in range(lm.shape[1]):
-        wj = np.convolve(w[:, j], kernel, mode="same")
         for c in range(2):
-            out[:, j, c] = np.convolve(xy0[:, j, c] * w[:, j], kernel, mode="same") / np.maximum(wj, 1e-6)
-        out[:, j, 2] = np.convolve(vis[:, j], kernel, mode="same") / kernel.sum()
-    out[np.isnan(lm[:, 0, 0])] = np.nan  # nobody detected -> draw nothing
+            xy[:, j, c] = np.convolve(np.pad(xy[:, j, c], half + 1, mode="edge"), kernel, mode="same")[half + 1: half + 1 + T]
+        vis[:, j] = np.convolve(np.pad(vis[:, j], half + 1, mode="edge"), kernel, mode="same")[half + 1: half + 1 + T]
+
+    if mats is not None and len(mats) >= T:  # wall -> image coordinates
+        inv = np.linalg.inv(mats[:T])
+        h = np.concatenate([xy, np.ones((T, xy.shape[1], 1))], axis=-1)
+        xy = np.einsum("tij,tkj->tki", inv, h)[:, :, :2]
+    out = np.concatenate([xy, vis[:, :, None]], axis=-1)
+    out[~detected] = np.nan
     return out
 
 
-def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=1.0, low_conf_text="?"):
-    lm = smooth_for_display(lm, fps)
+def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=1.0, low_conf_text="?", mats=None):
+    lm = smooth_for_display(lm, fps, mats)
     T = len(lm)
     events = report["events"]
     dur = T / fps
@@ -148,7 +190,7 @@ def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=
         pts = lm[i]
         if not np.isnan(pts[0, 0]):
             for a, b in BONES:
-                if pts[a, 2] > 0.6 and pts[b, 2] > 0.6:
+                if pts[a, 2] > 0.3 and pts[b, 2] > 0.3:
                     col = COLORS["bent_arms"] if ("bent_arms" in kinds and (a, b) in ARM_BONES) else OK
                     cv2.line(frame, tuple(pts[a, :2].astype(int)), tuple(pts[b, :2].astype(int)), col, thick, cv2.LINE_AA)
             for e in active:
