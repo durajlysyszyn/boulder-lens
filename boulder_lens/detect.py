@@ -99,7 +99,17 @@ def compute_features(lm: np.ndarray, fps: float, cfg: Config = DEFAULT) -> dict 
     idx = np.where(over_head)[0]
     climbing = np.zeros(T, bool)
     if len(idx):
-        climbing[idx[0]: idx[-1] + 1] = True
+        end = idx[-1]
+        # Rope climbing: the video often ends with a fall or with being lowered. Find the final
+        # continuous descent of the hips; if it is long (> lowering_drop), the climb ends where it starts.
+        hip_s = smooth(hip[:, 1:2], k=max(1, int(fps)))[:, 0]
+        j = end
+        while j > idx[0] and (hip_s[j] - hip_s[j - 1]) * fps > 0.3 * torso:  # moving down faster than 0.3 torso/s
+            j -= 1
+        if hip_s[end] - hip_s[j] > cfg.lowering_drop * torso:
+            end = j
+        idx = idx[idx <= end]
+        climbing[idx[0]: end + 1] = True
 
     # floor level: where the feet are before the climb starts (preferred – camera drift is smallest there)
     # or after it ends. None if the video starts and ends on the wall.
@@ -130,7 +140,7 @@ def compute_features(lm: np.ndarray, fps: float, cfg: Config = DEFAULT) -> dict 
         "body_static": (speed(hip) < cfg.body_static_speed) & detected,
         "arms": arms, "ground_y": ground_y, "wrists": (xy[:, L_WR] + xy[:, R_WR]) / 2,
         "climb_start": float(idx[0] / fps) if len(idx) else None,
-        "climb_end": float(idx[-1] / fps) if len(idx) else None,
+        "climb_end": float(np.where(climbing)[0][-1] / fps) if climbing.any() else None,
     }
 
 

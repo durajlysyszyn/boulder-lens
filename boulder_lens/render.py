@@ -32,16 +32,37 @@ def _font(size):
     return ImageFont.load_default()
 
 
-def _banner(frame, text, color_bgr, font, dim=False):
+def _wrap(d, text, font, max_w):
+    lines, cur = [], ""
+    for word in text.split():
+        trial = (cur + " " + word).strip()
+        if d.textlength(trial, font=font) <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = word
+    return lines + ([cur] if cur else [])
+
+
+def _banner(frame, text, color_bgr, font, dim=False, tip=None, tip_font=None):
+    """Message card at the top: what happened + (optionally) what to do about it."""
     img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     d = ImageDraw.Draw(img, "RGBA")
+    W = img.width
     pad, x0, y0 = 14, 20, 20
-    tw = d.textlength(text, font=font)
-    d.rounded_rectangle([x0, y0, x0 + tw + 2 * pad + 20, y0 + font.size + 2 * pad], 12, fill=(20, 20, 20, 200))
+    max_w = W - 2 * x0 - 2 * pad - 22
+    tip_lines = _wrap(d, tip, tip_font, max_w) if tip else []
+    tw = max([d.textlength(text, font=font)] + [d.textlength(l, font=tip_font) for l in tip_lines])
+    h = font.size + 2 * pad + len(tip_lines) * int(tip_font.size * 1.35) + (6 if tip_lines else 0)
+    d.rounded_rectangle([x0, y0, x0 + tw + 2 * pad + 22, y0 + h], 12, fill=(20, 20, 20, 210))
     cy = y0 + pad + font.size / 2
     fill = (color_bgr[2], color_bgr[1], color_bgr[0], 120 if dim else 255)
     d.ellipse([x0 + pad, cy - 6, x0 + pad + 12, cy + 6], fill=fill)
     d.text((x0 + pad + 22, y0 + pad - 2), text, font=font, fill=(255, 255, 255, 170 if dim else 255))
+    ty = y0 + pad + font.size + 6
+    for line in tip_lines:
+        d.text((x0 + pad + 22, ty), line, font=tip_font, fill=(225, 225, 225, 255))
+        ty += int(tip_font.size * 1.35)
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 
@@ -59,6 +80,7 @@ def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=
         if writer is None:
             writer = cv2.VideoWriter(str(tmp), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
             font = _font(max(18, w // 32))
+            tip_font = _font(max(15, w // 42))
         t = i / fps
         active = [e for e in events if e["start"] <= t <= e["end"] + show_after]
         kinds = {e["kind"] for e in active}
@@ -96,7 +118,8 @@ def render(video_path, lm, report, out_path, fps, stride, max_width, show_after=
         if active:
             e = active[-1]
             text = e.get("label", e["kind"]) + (f" ({low_conf_text})" if e.get("low_confidence") else "")
-            frame = _banner(frame, text, COLORS[e["kind"]], font, dim=e.get("low_confidence", False))
+            frame = _banner(frame, text, COLORS[e["kind"]], font, dim=e.get("low_confidence", False),
+                            tip=e.get("tip"), tip_font=tip_font)
         writer.write(frame)
     if writer:
         writer.release()

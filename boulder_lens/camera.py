@@ -20,6 +20,7 @@ def estimate_camera_motion(video_path: str, lm: np.ndarray | None, max_width: in
                            flow_width: int = 480) -> np.ndarray:
     """Returns [T, 3, 3] matrices mapping pixels of frame t to pixels of frame 0."""
     mats, prev_gray, cum, s = [], None, np.eye(3), 1.0
+    last_step = np.eye(3)
     for i, frame in enumerate(iter_frames(video_path, max_width, stride)):
         h, w = frame.shape[:2]
         s = flow_width / w
@@ -33,16 +34,24 @@ def estimate_camera_motion(video_path: str, lm: np.ndarray | None, max_width: in
                     (x0, y0), (x1, y1) = pts.min(0), pts.max(0)
                     pw, ph = (x1 - x0) * 0.35 + 20, (y1 - y0) * 0.2 + 20
                     cv2.rectangle(mask, (int(x0 - pw), int(y0 - ph)), (int(x1 + pw), int(y1 + ph)), 0, -1)
-            step = np.eye(3)
-            p0 = cv2.goodFeaturesToTrack(prev_gray, 400, 0.01, 8, mask=mask)
+            step = None
+            p0 = cv2.goodFeaturesToTrack(prev_gray, 800, 0.01, 6, mask=mask)
             if p0 is not None and len(p0) >= 12:
-                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, gray, p0, None)
-                good = st.ravel() == 1
+                # large window + deep pyramid: the camera can pan fast when following a rope climber
+                lk = dict(winSize=(31, 31), maxLevel=5,
+                          criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(prev_gray, gray, p0, None, **lk)
+                back, st2, _ = cv2.calcOpticalFlowPyrLK(gray, prev_gray, p1, None, **lk)
+                fb_err = np.linalg.norm((back - p0).reshape(-1, 2), axis=1)
+                good = (st.ravel() == 1) & (st2.ravel() == 1) & (fb_err < 1.0)  # forward-backward check
                 if good.sum() >= 12:
-                    M, _ = cv2.estimateAffinePartial2D(p1[good], p0[good], method=cv2.RANSAC,
-                                                       ransacReprojThreshold=2.0)
-                    if M is not None:
+                    M, inl = cv2.estimateAffinePartial2D(p1[good], p0[good], method=cv2.RANSAC,
+                                                         ransacReprojThreshold=2.0)
+                    if M is not None and inl is not None and inl.sum() >= 10:
                         step = np.vstack([M, [0, 0, 1]])  # frame t -> frame t-1
+            if step is None:  # tracking lost for a frame: assume the camera kept moving the same way
+                step = last_step
+            last_step = step
             cum = cum @ step
         mats.append(cum.copy())
         prev_gray = gray

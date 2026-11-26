@@ -20,6 +20,11 @@ TEXT = {
             "foot_slip": "Patrz na stopień aż do postawienia stopy i obciąż go czubkiem buta.",
             "foot_readjust": "Wybierz miejsce na stopniu, zanim podniesiesz nogę, i postaw stopę raz, cicho i precyzyjnie.",
         },
+        "short_tip": {
+            "bent_arms": "Wyprostuj ręce i wisz na szkielecie – pracują nogi.",
+            "foot_slip": "Patrz na stopień, aż postawisz stopę.",
+            "foot_readjust": "Wybierz miejsce na stopniu i postaw stopę raz.",
+        },
         "strength": {
             "straight_arms": "Dobra praca na prostych rękach ({p}% czasu w pozycji)",
             "quiet_feet": "Precyzyjne stopy ({p}% postawień bez poprawiania)",
@@ -44,6 +49,11 @@ TEXT = {
             "bent_arms": "When holding a position, hang on straight arms. Legs and hips do the work, arms just hold.",
             "foot_slip": "Watch the foothold until your foot is on it and load it with the toe of the shoe.",
             "foot_readjust": "Pick the spot on the foothold before lifting your leg, then place the foot once, quietly and precisely.",
+        },
+        "short_tip": {
+            "bent_arms": "Straighten your arms – let your legs push.",
+            "foot_slip": "Watch the foothold until your foot is on it.",
+            "foot_readjust": "Pick the spot first, then place the foot once.",
         },
         "strength": {
             "straight_arms": "Good straight-arm climbing ({p}% of holding time)",
@@ -73,6 +83,7 @@ def build_feedback(report: dict, camera: dict, lang: str = "pl") -> dict:
         if e["kind"] == "foot_readjust" and e["detail"].get("count", 1) > 1:
             e["label"] += " (" + t["readjust_count"].format(n=e["detail"]["count"]) + ")"
         e["low_confidence"] = e["confidence"] < LOW_CONFIDENCE
+        e["tip"] = t["short_tip"][e["kind"]]
 
     # main issue: severity x confidence, summed per kind
     score = {}

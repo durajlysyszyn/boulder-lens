@@ -37,8 +37,10 @@ class Config:
     readjust_merge_gap: float = 2.0     # s     – re-adjustments closer than this become one event
     ground_margin: float = 0.3          # torso – feet this close to the floor level are not judged
 
+    lowering_drop: float = 3.0          # torso – hips dropping this much after the high point = lowered on the rope
+
     # report
-    show_after: float = 1.0             # s – how long a message stays on screen after an event
+    show_after: float = 2.5             # s – how long a message + tip stays on screen after an event (time to read)
 
 
 DEFAULT = Config()
