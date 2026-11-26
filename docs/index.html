@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boulder Lens – example report</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1d1d1b;--muted:#6b6a65;--line:#e4e1da;--accent:#2f7d5b}
+@media (prefers-color-scheme:dark){:root{--bg:#151514;--card:#1f1f1d;--ink:#f1efe9;--muted:#a3a19a;--line:#33322f;--accent:#6fcf9f}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:1000px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(0,380px) 1fr;gap:24px}
+@media (max-width:760px){main{grid-template-columns:1fr}}
+h1{grid-column:1/-1;margin:0;font-size:22px} h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px}
+video{width:100%;border-radius:14px;background:#000;position:sticky;top:16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+ul{margin:0;padding-left:18px} .good li::marker{color:var(--accent)}
+.issue{font-weight:600;font-size:18px;margin:0 0 4px}
+.moments{list-style:none;padding:0} .moments li{display:flex;gap:10px;align-items:center;padding:8px 6px;border-radius:8px;cursor:pointer}
+.moments li:hover{background:var(--line)} .moments .dim{opacity:.55}
+.dot{width:10px;height:10px;border-radius:50%;flex:none} .time{font-variant-numeric:tabular-nums;color:var(--muted);width:38px}
+.conf{margin-left:auto;font-size:13px;color:var(--muted)} .limits{font-size:14px;color:var(--muted)}
+.intro{grid-column:1/-1;max-width:760px}.intro h1{font-size:28px;margin:4px 0 10px}
+.eyebrow{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);font-weight:600}
+.intro p{margin:0 0 10px}.links a{color:var(--accent);font-weight:600}.note{font-size:14px;color:var(--muted)}
+</style></head><body><main>
+<header class="intro">
+<p class="eyebrow">Boulder Lens · concept prototype</p>
+<h1>Video feedback on bouldering technique</h1>
+<p>Below is a real report generated from a phone video filmed by hand at a climbing gym. The engine tracks the climber's body,
+compensates for the moving camera, and turns what it sees into feedback: strengths first, one thing to work on, clickable moments –
+and an honest list of what it <em>could not</em> judge.</p>
+<p class="links"><a href="https://github.com/durajlysyszyn/boulder-lens">Code &amp; docs on GitHub</a> ·
+<a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/lessons-learned.md">Lessons learned</a> ·
+<a href="https://github.com/durajlysyszyn/boulder-lens/blob/main/docs/architecture.md">Architecture</a></p>
+<p class="note">This climb produced no issue events – partly because the arms and feet were often hidden from the camera.
+That is exactly the case the report is designed to be honest about. An interactive version (analyse your own video in the browser) is on the roadmap.</p>
+</header>
+<div><video id="v" src="demo/example.mp4" controls playsinline></video></div>
+<div>
+<section><h2>What went well</h2><ul class="good"><li>Not enough visible data to name strengths.</li></ul></section>
+<section><h2>What to work on</h2><p>No issues detected in what was visible in the video.</p></section>
+
+<section class="limits"><h2>Limits of this analysis</h2><ul><li>The camera moved during the video – motion was compensated, but a tripod gives a more accurate analysis.</li><li>Arms were often hidden (53% of frames with both arms visible) – arm feedback is less certain.</li><li>Feet were hard to see – footwork was not assessed.</li></ul></section>
+</div></main>
+<script>
+const v=document.getElementById('v');
+document.querySelectorAll('.moments li').forEach(li=>li.addEventListener('click',()=>{v.currentTime=Math.max(0,+li.dataset.t-0.5);v.play();}));
+</script>
+<script type="application/json" id="data">{"metrics": {"straight_arm_ratio": 0.52, "foot_placements": 9, "clean_foot_ratio": 1.0, "foot_slips": 0}, "quality": {"person_detected": 1.0, "both_arms_visible": 0.53}, "camera": {"pan_p95_per_s": 0.059, "zoom_range": 1.15, "handheld": true}}</script>
+</body></html>
