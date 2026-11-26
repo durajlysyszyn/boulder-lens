@@ -30,11 +30,13 @@ def write_html(report: dict, path, lang: str = "pl"):
              if fb["main_issue"] else f"<p>{u['none']}</p>")
     m, q = report["metrics"], report["quality"]
     climb = (report.get("climb_end_s") or 0) - (report.get("climb_start_s") or 0)
+    arms_ok, feet_ok = q.get("arms_visible", 1) >= 0.6, q.get("feet_visible", 1) >= 0.6
+    na = "–"  # do not show a number we cannot stand behind
     rows = [(u["m_time"], f"{climb:.0f} s"),
-            (u["m_straight"], f"{int(m['straight_arm_ratio'] * 100)}%"),
-            (u["m_place"], str(m["foot_placements"])),
-            (u["m_clean"], f"{int(m['clean_foot_ratio'] * 100)}%"),
-            (u["m_slips"], str(m["foot_slips"])),
+            (u["m_straight"], f"{int(m['straight_arm_ratio'] * 100)}%" if arms_ok else na),
+            (u["m_place"], str(m["foot_placements"]) if feet_ok and m["foot_placements"] else na),
+            (u["m_clean"], f"{int(m['clean_foot_ratio'] * 100)}%" if feet_ok and m["foot_placements"] else na),
+            (u["m_slips"], str(m["foot_slips"]) if feet_ok and m["foot_placements"] else na),
             (u["m_vis"], f"{int(q.get('arms_visible', 0) * 100)}% / {int(q.get('feet_visible', 0) * 100)}%")]
     measures = "".join(f"<div><dt>{esc(k)}</dt><dd>{esc(v)}</dd></div>" for k, v in rows)
     warnings = "".join(f"<li>{esc(w)}</li>" for w in fb["warnings"])
