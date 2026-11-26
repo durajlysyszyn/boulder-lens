@@ -1,6 +1,6 @@
 # Boulder Lens
 
-**Video feedback on bouldering technique – from the clip you already film at the gym.**
+**Video feedback on climbing technique – from the clip you already film at the gym.** Bouldering and top rope.
 
 Climbers film themselves all the time, but rarely learn from the footage. Boulder Lens
 takes a normal phone video of a boulder problem, tracks the climber's body and points to
@@ -10,6 +10,8 @@ the moments where technique broke down – with one clear thing to work on next.
 
 > **Status:** working prototype / concept. The detection engine runs on real videos;
 > the mobile app is designed but not built yet. See the [roadmap](docs/roadmap.md).
+>
+> **Live demo:** [durajlysyszyn.github.io/boulder-lens](https://durajlysyszyn.github.io/boulder-lens/) – two case studies: a boulder and a beginner on a top rope.
 
 ---
 
@@ -20,7 +22,7 @@ Output, for every video:
 
 | File | What it is |
 |---|---|
-| `*_analysis.mp4` | the video with the skeleton, on-screen messages and a timeline of events |
+| `*_analysis.mp4` | the video with a steady skeleton, a message + tip on screen when something happens, and a timeline of events |
 | `*_report.html` | a one-page report: what went well, the one thing to work on, clickable moments, limits of the analysis |
 | `*_report.json` | the same data for an app or for evaluation |
 
@@ -46,6 +48,11 @@ The engine is small on purpose – the interesting part is how feedback is given
    error while *holding a position*. Feet on the mat and the final match on the top hold are not judged.
 6. **Built for how people actually film.** None of our test videos were shot on a tripod, so camera motion
    compensation is part of the core, not an extra.
+7. **Never show a number we can't stand behind.** Visibility is measured per limb; when arms or feet were hidden,
+   the report shows "–" and says why, instead of praising or criticising what it could not see.
+8. **A skeleton you can trust at a glance.** The pose model is sometimes confidently wrong (e.g. it swaps legs
+   for a moment). For display, impossible jumps are rejected and limbs resting on a hold are pinned to it in
+   wall coordinates, so a still foot looks still.
 
 ## How it works
 
@@ -70,13 +77,17 @@ Details: [docs/architecture.md](docs/architecture.md).
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/download_model.py          # MediaPipe pose model, ~9 MB
+python scripts/download_model.py heavy    # optional: more accurate model, ~30 MB
 python analyze.py my_climb.mov            # results/ my_climb_analysis.mp4, _report.html, _report.json
 python analyze.py videos/*.mov --lang en  # several videos, English feedback
+python analyze.py my_climb.mov --model models/pose_landmarker_heavy.task   # harder footage
 pytest                                    # tests on a synthetic climber, no video needed
 ```
 
 Tips for filming: whole body in frame, camera roughly level with the middle of the problem,
-start a second before leaving the ground.
+start a second before leaving the ground. On a rope route keep the climber at least ~1/3 of the frame height.
+Which model to use: the heavy model was clearly steadier on a close-up boulder video with baggy trousers,
+but worse on a small, far-away climber on a rope – the default model stays the default.
 
 ## Measuring accuracy
 
